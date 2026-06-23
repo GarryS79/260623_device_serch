@@ -144,12 +144,16 @@ export async function analyzeDevice(
     openrouter: cookieStore.get(KEY_NAMES.openrouter)?.value || process.env.OPENROUTER_API_KEY,
   };
 
+  const tried: string[] = [];
+  const errors: string[] = [];
+
   // 1. Anthropic Claude
   if (keys.anthropic) {
+    tried.push('Claude');
     try {
       const client = new Anthropic({ apiKey: keys.anthropic });
       const res = await client.messages.create({
-        model: 'claude-sonnet-4-5',
+        model: 'claude-sonnet-4-6',
         max_tokens: 1024,
         messages: [{
           role: 'user',
@@ -170,12 +174,15 @@ export async function analyzeDevice(
       const data = parseJSON(text);
       return { success: true, data: { ...(data as unknown as DeviceInfo), provider: 'Claude' } };
     } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      errors.push(`Claude: ${msg}`);
       console.error('Anthropic error:', e);
     }
   }
 
   // 2. Google Gemini
   if (keys.gemini) {
+    tried.push('Gemini');
     try {
       const genAI = new GoogleGenerativeAI(keys.gemini);
       const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
@@ -187,12 +194,15 @@ export async function analyzeDevice(
       const data = parseJSON(text);
       return { success: true, data: { ...(data as unknown as DeviceInfo), provider: 'Gemini' } };
     } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      errors.push(`Gemini: ${msg}`);
       console.error('Gemini error:', e);
     }
   }
 
   // 3. OpenAI GPT-4o
   if (keys.openai) {
+    tried.push('GPT-4o');
     try {
       const client = new OpenAI({ apiKey: keys.openai });
       const res = await client.chat.completions.create({
@@ -210,19 +220,22 @@ export async function analyzeDevice(
       const data = parseJSON(text);
       return { success: true, data: { ...(data as unknown as DeviceInfo), provider: 'GPT-4o' } };
     } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      errors.push(`GPT-4o: ${msg}`);
       console.error('OpenAI error:', e);
     }
   }
 
   // 4. OpenRouter
   if (keys.openrouter) {
+    tried.push('OpenRouter');
     try {
       const client = new OpenAI({
         apiKey: keys.openrouter,
         baseURL: 'https://openrouter.ai/api/v1',
       });
       const res = await client.chat.completions.create({
-        model: 'anthropic/claude-3.5-sonnet',
+        model: 'openai/gpt-4o-mini',
         max_tokens: 1024,
         messages: [{
           role: 'user',
@@ -236,12 +249,21 @@ export async function analyzeDevice(
       const data = parseJSON(text);
       return { success: true, data: { ...(data as unknown as DeviceInfo), provider: 'OpenRouter' } };
     } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      errors.push(`OpenRouter: ${msg}`);
       console.error('OpenRouter error:', e);
     }
   }
 
+  if (tried.length === 0) {
+    return {
+      success: false,
+      error: 'API 키가 설정되지 않았습니다. ⚙️ 설정에서 API 키를 입력해주세요.',
+    };
+  }
+
   return {
     success: false,
-    error: 'API 키가 없거나 모든 AI 호출에 실패했습니다. ⚙️ 설정에서 API 키를 입력해주세요.',
+    error: `호출 실패 (${tried.join(', ')} 시도함)\n${errors.join('\n')}`,
   };
 }
