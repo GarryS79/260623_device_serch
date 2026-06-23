@@ -1,8 +1,11 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #080e1a;
+  --foreground: #e2e8f0;
+  --card-bg: #0f1929;
+  --border: #1e3a5f;
+  --accent: #38bdf8;
 }
 
 @theme inline {
@@ -12,15 +15,42 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes scanLine {
+  0% { top: 0%; }
+  50% { top: 90%; }
+  100% { top: 0%; }
+}
+
+@keyframes pulseGlow {
+  0%, 100% { box-shadow: 0 0 12px rgba(56, 189, 248, 0.3); }
+  50% { box-shadow: 0 0 24px rgba(56, 189, 248, 0.6); }
+}
+
+.fade-in {
+  animation: fadeInUp 0.4s ease-out forwards;
+}
+
+.scanning-border {
+  animation: pulseGlow 1.5s ease-in-out infinite;
+}
+
+.scan-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, #38bdf8, transparent);
+  animation: scanLine 2s linear infinite;
 }
